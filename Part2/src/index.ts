@@ -239,6 +239,20 @@ const encrypt = async (
 ): Promise<Ciphertext> => {
   const mimc7 = await buildMimc7();
   // [assignment] generate the IV, use Mimc7 to hash the shared key with the IV, then encrypt the plain text
+  // Generate the IV
+  const iv = mimc7.multiHash(plaintext, BigInt(0));
+  const ivBigInt = buf2Bigint(iv);
+
+  const ciphertext: Ciphertext = {
+    iv: ivBigInt,
+    data: plaintext.map((e: bigint, i: number): bigint => {
+      let hash = mimc7.hash(sharedKey, ivBigInt + BigInt(i));
+      return e + buf2Bigint(hash);
+    }),
+  };
+
+  // TODO: add asserts here
+  return ciphertext;
 };
 
 /*
@@ -250,6 +264,15 @@ const decrypt = async (
   sharedKey: EcdhSharedKey,
 ): Promise<Plaintext> => {
   // [assignment] use Mimc7 to hash the shared key with the IV, then descrypt the ciphertext
+  const mimc7 = await buildMimc7();
+  const plaintext: Plaintext = ciphertext.data.map(
+    (e: bigint, i: number): bigint => {
+      let hash = mimc7.hash(sharedKey, ciphertext.iv + BigInt(i));
+      return e - buf2Bigint(hash);
+    },
+  );
+
+  return plaintext;
 };
 
 export {
